@@ -20,15 +20,16 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   test:
     name: Testes Playwright
     timeout-minutes: 15
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-test-${{ github.ref }}
+      cancel-in-progress: true
+    outputs:
+      report_ready: ${{ steps.pages_artifact.outputs.ready }}
 
     steps:
       - name: Checkout do código
@@ -63,7 +64,7 @@ jobs:
             npm test
           fi
 
-      - name: Publicar relatório HTML do Playwright
+      - name: Publicar relatório HTML como artifact
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -80,3 +81,38 @@ jobs:
           path: test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+      - name: Preparar relatório para GitHub Pages
+        id: pages_artifact
+        if: ${{ !cancelled() && github.event_name != 'pull_request' }}
+        run: |
+          if [ -d "playwright-report" ]; then
+            touch playwright-report/.nojekyll
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enviar relatório para GitHub Pages
+        if: ${{ !cancelled() && steps.pages_artifact.outputs.ready == 'true' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: playwright-report
+
+  deploy-report:
+    name: Publicar relatório no GitHub Pages
+    needs: test
+    if: ${{ !cancelled() && needs.test.outputs.report_ready == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
