@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { UtilizadorDeTeste, criarUtilizadorComLogin } from '../../src/api/AuthApi';
 
 test.describe('API Login', () => {
@@ -6,5 +6,6 @@ test.describe('API Login', () => {
 
   test('Login com sucesso', async ({ request }) => {
     admin = await criarUtilizadorComLogin(request, true);
+    expect(admin.token).toBeTruthy();
   });
 });
