@@ -1,6 +1,8 @@
 import { test } from '@playwright/test';
 import { UtilizadorDeTeste, apagarUtilizador, criarUtilizadorComLogin } from '../../src/api/AuthApi';
-import { listarProdutos } from '../../src/api/ProductsApi';
+import { buscarProdutoPorId, criarProduto, listarProdutos } from '../../src/api/ProductsApi';
+import { novoProduto } from '../../src/utils/dados';
+
 
 test.describe('API /produtos: gestão de produtos pelo administrador', () => {
   let admin: UtilizadorDeTeste;
@@ -13,7 +15,13 @@ test.describe('API /produtos: gestão de produtos pelo administrador', () => {
     await apagarUtilizador(request, admin.id);
   });
 
-  test('Validar listagem de produtos pelo administrador autenticado', async ({ request }) => {
-    await listarProdutos(request);
+  test('Validar listagem de produtos', async ({ request }) => {
+    await listarProdutos(request, admin.token);
+  });
+
+  test('Criar um novo produto e validar na listagem', async ({ request }) => {
+    const registo = await criarProduto(request, novoProduto(), admin.token);
+    const body = await registo.json();
+    await buscarProdutoPorId(request, body._id, admin.token);
   });
 });
