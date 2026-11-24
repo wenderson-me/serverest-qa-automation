@@ -28,3 +28,7 @@ export async function criarUtilizadorComLogin(
 
   return { id: _id, email: utilizador.email, password: utilizador.password, token: authorization };
 }
+
+export async function apagarUtilizador(request: APIRequestContext, id: string) {
+  await request.delete(`${API_URL}/usuarios/${id}`);
+}
