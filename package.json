@@ -1,0 +1,19 @@
+{
+  "name": "serverest-qa-automation",
+  "version": "1.0.0",
+  "description": "Testes automatizados de API e E2E para gestão de produtos no ServeRest",
+  "private": false,
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=e2e",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.7",
+    "typescript": "^7.0.2"
+  }
+}
