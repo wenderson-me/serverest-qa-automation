@@ -20,7 +20,11 @@ export async function listarProdutos(request: APIRequestContext, token: string):
     return body.produtos;
 }
 
-export async function criarProduto(request: APIRequestContext, produto: Produto, token: string) {
+export async function criarProduto(
+    request: APIRequestContext,
+    produto: Produto,
+    token: string,
+): Promise<{ message: string; _id: string }> {
     const response = await request.post(`${API_URL}/produtos`, {
         data: produto,
         headers: { Authorization: token },
@@ -29,10 +33,10 @@ export async function criarProduto(request: APIRequestContext, produto: Produto,
     const body = await response.json();
     expect(body).toHaveProperty('message');
     expect(body.message).toBe('Cadastro realizado com sucesso');
-    return response;
+    return body;
 }
 
-export async function buscarProdutoPorId(request: APIRequestContext, id: string, token: string) {
+export async function buscarProdutoPorId(request: APIRequestContext, id: string, token: string): Promise<ProdutoCriado> {
     const response = await request.get(`${API_URL}/produtos/${id}`,
         { headers: { Authorization: token } }
     );

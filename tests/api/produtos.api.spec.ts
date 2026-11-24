@@ -21,7 +21,6 @@ test.describe('API /produtos: gestão de produtos pelo administrador', () => {
 
   test('Criar um novo produto e validar na listagem', async ({ request }) => {
     const registo = await criarProduto(request, novoProduto(), admin.token);
-    const body = await registo.json();
-    await buscarProdutoPorId(request, body._id, admin.token);
+    await buscarProdutoPorId(request, registo._id, admin.token);
   });
 });
