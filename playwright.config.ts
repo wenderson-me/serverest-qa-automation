@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
+
+if (existsSync('.env')) process.loadEnvFile();
 
 export default defineConfig({
   testDir: './tests',
@@ -15,10 +18,16 @@ export default defineConfig({
     {
       name: 'api',
       testDir: './tests/api',
+      use: {
+        baseURL: process.env.API_URL ?? 'https://serverest.dev',
+      },
     },
     {
       name: 'e2e',
       testDir: './tests/e2e',
+      use: {
+        baseURL: process.env.FRONT_URL ?? 'https://front.serverest.dev',
+      },
     },
   ],
 });
