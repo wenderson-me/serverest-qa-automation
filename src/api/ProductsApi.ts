@@ -32,7 +32,7 @@ export async function criarProduto(
     expect(response.status()).toBe(201);
     const body = await response.json();
     expect(body).toHaveProperty('message');
-    expect(body.message).toBe('Cadastro realizado com sucesso');
+    expect(body.message).toEqual('Cadastro realizado com sucesso');
     return body;
 }
 
@@ -43,10 +43,20 @@ export async function buscarProdutoPorId(request: APIRequestContext, id: string,
     expect(response.status()).toBe(200);
 
     const body = await response.json();
+    expect(body._id).toEqual(id);
     expect(body).toHaveProperty('nome');
     expect(body).toHaveProperty('descricao');
     expect(body).toHaveProperty('preco');
     expect(body).toHaveProperty('quantidade');
-    expect(body).toHaveProperty('_id');
     return body;
+}
+
+export async function deletarProduto(request: APIRequestContext, id: string, token: string) {
+    const response = await request.delete(`${API_URL}/produtos/${id}`,
+        { headers: { Authorization: token } }
+    );
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).toHaveProperty('message');
+    expect(body.message).toEqual('Registro excluído com sucesso');
 }
