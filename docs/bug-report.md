@@ -27,7 +27,7 @@ Ter um usuário administrador autenticado na API.
 3. Consultar o produto criado em `GET /produtos/{id}`.
 
 **Resultado obtido**  
-A API aceita o campo `imagem`, cria o produto normalmente (`201`) e passa a retornar esse campo na listagem. Porém, na documentação do Swagger só aparecem `nome`, `preco`, `descricao` e `quantidade` — o campo `imagem` não está documentado em lugar nenhum e o contrato indica que campos extras não seriam aceitos.
+A API aceita o campo `imagem`, cria o produto normalmente (`201`) e passa a retornar esse campo na listagem. Porém, na documentação do Swagger só aparecem `nome`, `preco`, `descricao` e `quantidade` — o campo `imagem` não está documentado em lugar nenhum e o contrato indica que campos extras não seriam aceitos. Esse comportamento está coberto pelo teste `test.fail` `Validar que o Swagger documenta o campo imagem aceito em POST /produtos` em `tests/api/produtos.api.spec.ts`.
 
 **Resultado esperado**  
 A documentação e o comportamento da API devem caminhar juntos: se o campo `imagem` é aceito, ele precisa aparecer no Swagger com suas regras; se não deveria existir, a API deveria rejeitá-lo com erro `400`.

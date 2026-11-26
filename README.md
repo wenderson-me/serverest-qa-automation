@@ -51,6 +51,8 @@ Opcionalmente, é possível sobrescrever as URLs padrão criando um arquivo `.en
 │   ├── api/
 │   │   ├── AuthApi.ts              # Cadastro, login e limpeza de usuários via API
 │   │   └── ProductsApi.ts          # Helpers tipados para listar, criar, buscar, editar e excluir produtos
+│   ├── config/
+│   │   └── env.ts                  # Carregamento do .env (dotenv) e URLs centralizadas da API e Frontend
 │   ├── pages/
 │   │   ├── LoginPage.ts            # Page Object da tela de login
 │   │   └── ProdutosPage.ts         # Page Object de cadastro e listagem de produtos
