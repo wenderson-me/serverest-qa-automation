@@ -1,7 +1,6 @@
 import { APIRequestContext, expect } from '@playwright/test';
+import { API_URL } from '../config/env';
 import { novoUtilizador } from '../utils/dados';
-
-const API_URL = process.env.API_URL ?? 'https://serverest.dev';
 
 export interface UtilizadorDeTeste {
   id: string;
