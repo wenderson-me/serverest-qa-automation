@@ -1,21 +1,30 @@
 import { APIRequestContext, expect } from '@playwright/test';
+import { API_URL } from '../config/env';
 import { Produto } from '../utils/dados';
-
-const API_URL = process.env.API_URL ?? 'https://serverest.dev';
 
 export interface ProdutoCriado extends Produto {
     _id: string;
 }
 
 export async function listarProdutos(request: APIRequestContext, token: string): Promise<ProdutoCriado[]> {
-    const produto = await request.get(`${API_URL}/produtos`,
+    const response = await request.get(`${API_URL}/produtos`,
         { headers: { Authorization: token } }
     );
-    expect(produto.status()).toBe(200);
+    expect(response.status()).toBe(200);
 
-    const body = await produto.json();
+    const body = await response.json();
+    expect(body).toHaveProperty('quantidade');
     expect(body).toHaveProperty('produtos');
     expect(Array.isArray(body.produtos)).toBe(true);
+    expect(body.produtos).toHaveLength(body.quantidade);
+
+    for (const item of body.produtos) {
+        expect(item).toHaveProperty('_id');
+        expect(item).toHaveProperty('nome');
+        expect(item).toHaveProperty('preco');
+        expect(item).toHaveProperty('descricao');
+        expect(item).toHaveProperty('quantidade');
+    }
 
     return body.produtos;
 }
@@ -33,6 +42,7 @@ export async function criarProduto(
     const body = await response.json();
     expect(body).toHaveProperty('message');
     expect(body.message).toEqual('Cadastro realizado com sucesso');
+    expect(body._id).toBeTruthy();
     return body;
 }
 

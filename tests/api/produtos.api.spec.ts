@@ -7,10 +7,17 @@ import { novoProduto } from '../../src/utils/dados';
 test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
   let admin: UtilizadorDeTeste;
   let cliente: UtilizadorDeTeste;
+  const produtosParaApagar: string[] = [];
 
   test.beforeAll(async ({ request }) => {
     admin = await criarUtilizadorComLogin(request, true);
     cliente = await criarUtilizadorComLogin(request, false);
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const id of produtosParaApagar.splice(0)) {
+      await deletarProduto(request, id, admin.token);
+    }
   });
 
   test.afterAll(async ({ request }) => {
@@ -22,15 +29,28 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
     await listarProdutos(request, admin.token);
   });
 
-  test('Validar criar produto e buscar na listagem', async ({ request }) => {
-    const produtoCriado = await criarProduto(request, novoProduto(), admin.token);
-    await buscarProdutoPorId(request, produtoCriado._id, admin.token);
-    await deletarProduto(request, produtoCriado._id, admin.token);
+  test('Validar criar produto e buscar por ID e na listagem', async ({ request }) => {
+    const produto = novoProduto();
+    const produtoCriado = await criarProduto(request, produto, admin.token);
+    produtosParaApagar.push(produtoCriado._id);
+    expect(produtoCriado._id).toBeTruthy();
+
+    const produtoBuscado = await buscarProdutoPorId(request, produtoCriado._id, admin.token);
+    expect(produtoBuscado.nome).toBe(produto.nome);
+    expect(produtoBuscado.preco).toBe(produto.preco);
+    expect(produtoBuscado.descricao).toBe(produto.descricao);
+    expect(produtoBuscado.quantidade).toBe(produto.quantidade);
+
+    const listagem = await request.get('/produtos', { params: { nome: produto.nome } });
+    expect(listagem.status()).toBe(200);
+    const { produtos } = await listagem.json();
+    expect(produtos).toContainEqual(expect.objectContaining({ _id: produtoCriado._id, ...produto }));
   });
 
   test('Validar erro 400 ao criar dois produtos com o mesmo nome', async ({ request }) => {
     const produto = novoProduto();
     const produtoCriado = await criarProduto(request, produto, admin.token);
+    produtosParaApagar.push(produtoCriado._id);
 
     const response = await request.post('/produtos', {
       data: produto,
@@ -39,8 +59,6 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
     expect(response.status()).toBe(400);
     const body = await response.json();
     expect(body.message).toBe('Já existe produto com esse nome');
-
-    await deletarProduto(request, produtoCriado._id, admin.token);
   });
 
   test('Validar erro 400 ao buscar produto deletado', async ({ request }) => {
@@ -57,6 +75,32 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
     const body = await response.json();
     expect(body.message).toBe('Produto não encontrado');
   });
+
+  test.fail('Validar documentação do campo imagem no endpoint POST /produtos',
+    { annotation: { type: 'bug', description: 'docs/bug-report.md, bug 1' } },
+    async ({ request }) => {
+      const produtoComImagem = { ...novoProduto(), imagem: 'imagem-produto.png' };
+
+      const cadastro = await request.post('/produtos', {
+        data: produtoComImagem,
+        headers: { Authorization: admin.token },
+      });
+      expect(cadastro.status()).toBe(201);
+      const { _id } = await cadastro.json();
+      produtosParaApagar.push(_id);
+
+      const busca = await request.get(`/produtos/${_id}`);
+      expect(busca.status()).toBe(200);
+      expect((await busca.json()).imagem).toBe('imagem-produto.png');
+
+      const respostaSwagger = await request.get('/swagger.json');
+      expect(respostaSwagger.status()).toBe(200);
+      const swagger = await respostaSwagger.json();
+      const camposDoProduto = swagger.components.schemas.requestBodyProduto.properties;
+
+      expect(Object.keys(camposDoProduto)).toContain('imagem');
+    },
+  );
 
   test.describe('Validação dos campos', () => {
     const casosInvalidos = [
@@ -119,6 +163,7 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
   test.describe('Edição de produtos', () => {
     test('Validar edição de um produto com dados válidos', async ({ request }) => {
       const produtoCriado = await criarProduto(request, novoProduto(), admin.token);
+      produtosParaApagar.push(produtoCriado._id);
       const produtoAtualizado = novoProduto();
 
       await editarProduto(request, produtoCriado._id, produtoAtualizado, admin.token);
@@ -128,8 +173,6 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
       expect(produtoBuscado.preco).toBe(produtoAtualizado.preco);
       expect(produtoBuscado.descricao).toBe(produtoAtualizado.descricao);
       expect(produtoBuscado.quantidade).toBe(produtoAtualizado.quantidade);
-
-      await deletarProduto(request, produtoCriado._id, admin.token);
     });
 
     test('Validar erro 400 ao tentar editar produto com ID inexistente/inválido', async ({ request }) => {
@@ -145,6 +188,7 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
 
     test('Bloquear edição de produto com campos obrigatórios vazios', async ({ request }) => {
       const produtoCriado = await criarProduto(request, novoProduto(), admin.token);
+      produtosParaApagar.push(produtoCriado._id);
 
       const resposta = await request.put(`/produtos/${produtoCriado._id}`, {
         data: { nome: '', preco: '', descricao: '', quantidade: '' },
@@ -157,8 +201,6 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
       expect(body).toHaveProperty('preco');
       expect(body).toHaveProperty('descricao');
       expect(body).toHaveProperty('quantidade');
-
-      await deletarProduto(request, produtoCriado._id, admin.token);
     });
   });
 });
