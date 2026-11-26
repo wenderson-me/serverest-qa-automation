@@ -1,16 +1,15 @@
-import { test, expect } from '@playwright/test';
 import { join } from 'node:path';
+import { expect, test } from '@playwright/test';
 import {
   apagarUtilizador,
   criarUtilizadorComLogin,
   UtilizadorDeTeste,
 } from '../../src/api/AuthApi';
 import { deletarProdutoPorNome, criarProduto } from '../../src/api/ProductsApi';
+import { API_URL } from '../../src/config/env';
 import { novoProduto } from '../../src/utils/dados';
 import { LoginPage } from '../../src/pages/LoginPage';
 import { ProdutosPage } from '../../src/pages/ProdutosPage';
-
-const API_URL = process.env.API_URL ?? 'https://serverest.dev';
 
 test.describe('Frontend: gestão de produtos pelo administrador', () => {
   let admin: UtilizadorDeTeste;
@@ -109,23 +108,21 @@ test.describe('Frontend: gestão de produtos pelo administrador', () => {
     await expect(linha).not.toBeVisible();
   });
 
-  test.fail('Deve guardar a imagem escolhida no formulário',
-    { annotation: { type: 'bug', description: 'docs/bug-report.md, bug 1' } },
-    async ({ page, request }) => {
-      const produto = novoProduto();
-      produtosParaApagar.push(produto.nome);
-      const produtosPage = new ProdutosPage(page);
+  test('Deve registrar um produto com imagem e retornar a imagem na API', async ({ page, request }) => {
+    const produto = novoProduto();
+    produtosParaApagar.push(produto.nome);
+    const produtosPage = new ProdutosPage(page);
 
-      await produtosPage.abrirFormulario();
-      await produtosPage.preencher(produto);
-      await page.getByTestId('imagem').setInputFiles(join(__dirname, 'arquivo', 'imagem-produto.png'));
-      await produtosPage.cadastrar();
-      await expect(page).toHaveURL(/\/admin\/listarprodutos/);
+    await produtosPage.abrirFormulario();
+    await produtosPage.preencher(produto);
+    await page.getByTestId('imagem').setInputFiles(join(__dirname, 'arquivo', 'imagem-produto.png'));
+    await produtosPage.cadastrar();
+    await expect(page).toHaveURL(/\/admin\/listarprodutos/);
 
-      const resposta = await request.get(`${API_URL}/produtos`, { params: { nome: produto.nome } });
-      const [produtoGuardado] = (await resposta.json()).produtos;
+    const resposta = await request.get(`${API_URL}/produtos`, { params: { nome: produto.nome } });
+    expect(resposta.status()).toBe(200);
+    const [produtoGuardado] = (await resposta.json()).produtos;
 
-      expect(produtoGuardado.imagem ?? '').not.toContain('fakepath');
-    },
-  );
+    expect(produtoGuardado.imagem).toContain('imagem-produto.png');
+  });
 });
