@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { UtilizadorDeTeste, apagarUtilizador, criarUtilizadorComLogin } from '../../src/api/AuthApi';
-import { buscarProdutoPorId, criarProduto, deletarProduto, listarProdutos } from '../../src/api/ProductsApi';
+import { buscarProdutoPorId, criarProduto, deletarProduto, editarProduto, listarProdutos } from '../../src/api/ProductsApi';
 import { novoProduto } from '../../src/utils/dados';
 
 
@@ -15,6 +15,7 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
 
   test.afterAll(async ({ request }) => {
     await apagarUtilizador(request, admin.id);
+    await apagarUtilizador(request, cliente.id);
   });
 
   test('Validar listagem de produtos', async ({ request }) => {
@@ -42,15 +43,15 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
     await deletarProduto(request, produtoCriado._id, admin.token);
   });
 
-  test('Validar erro 404 ao buscar produto deletado', async ({ request }) => {
+  test('Validar erro 400 ao buscar produto deletado', async ({ request }) => {
     const produto = novoProduto();
     const produtoCriado = await criarProduto(request, produto, admin.token);
     await deletarProduto(request, produtoCriado._id, admin.token);
 
     const response = await request.get(`/produtos/${produtoCriado._id}`, {
       headers: {
-        Authorization: `Bearer ${admin.token}`
-      }
+        Authorization: admin.token,
+      },
     });
     expect(response.status()).toBe(400);
     const body = await response.json();
@@ -67,7 +68,7 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
     ];
 
     for (const caso of casosInvalidos) {
-      test(`rejeita ${caso.titulo}`, async ({ request }) => {
+      test(`Rejeita ${caso.titulo}`, async ({ request }) => {
         const produto = { ...novoProduto(), [caso.campo]: caso.valor };
 
         const resposta = await request.post('/produtos', {
@@ -81,7 +82,7 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
       });
     }
 
-    test('rejeita produto com todos os campos em branco', async ({ request }) => {
+    test('Rejeita produto com todos os campos em branco', async ({ request }) => {
       const resposta = await request.post('/produtos', {
         data: { nome: '', preco: '', descricao: '', quantidade: '' },
         headers: { Authorization: admin.token },
@@ -112,6 +113,52 @@ test.describe('API Produtos - Gestão de Produtos por Administrador', () => {
 
       expect(resposta.status()).toBe(403);
       expect((await resposta.json()).message).toBe('Rota exclusiva para administradores');
+    });
+  });
+
+  test.describe('Edição de produtos', () => {
+    test('Validar edição de um produto com dados válidos', async ({ request }) => {
+      const produtoCriado = await criarProduto(request, novoProduto(), admin.token);
+      const produtoAtualizado = novoProduto();
+
+      await editarProduto(request, produtoCriado._id, produtoAtualizado, admin.token);
+
+      const produtoBuscado = await buscarProdutoPorId(request, produtoCriado._id, admin.token);
+      expect(produtoBuscado.nome).toBe(produtoAtualizado.nome);
+      expect(produtoBuscado.preco).toBe(produtoAtualizado.preco);
+      expect(produtoBuscado.descricao).toBe(produtoAtualizado.descricao);
+      expect(produtoBuscado.quantidade).toBe(produtoAtualizado.quantidade);
+
+      await deletarProduto(request, produtoCriado._id, admin.token);
+    });
+
+    test('Validar erro 400 ao tentar editar produto com ID inexistente/inválido', async ({ request }) => {
+      const resposta = await request.put('/produtos/id-inexistente', {
+        data: novoProduto(),
+        headers: { Authorization: admin.token },
+      });
+      const body = await resposta.json();
+
+      expect(resposta.status()).toBe(400);
+      expect(body).toHaveProperty('id');
+    });
+
+    test('Bloquear edição de produto com campos obrigatórios vazios', async ({ request }) => {
+      const produtoCriado = await criarProduto(request, novoProduto(), admin.token);
+
+      const resposta = await request.put(`/produtos/${produtoCriado._id}`, {
+        data: { nome: '', preco: '', descricao: '', quantidade: '' },
+        headers: { Authorization: admin.token },
+      });
+      const body = await resposta.json();
+
+      expect(resposta.status()).toBe(400);
+      expect(body).toHaveProperty('nome');
+      expect(body).toHaveProperty('preco');
+      expect(body).toHaveProperty('descricao');
+      expect(body).toHaveProperty('quantidade');
+
+      await deletarProduto(request, produtoCriado._id, admin.token);
     });
   });
 });
